@@ -1067,6 +1067,12 @@ dependencies = [
 [[package]]
 name = "lk-room"
 version = "0.1.0"
+dependencies = [
+ "lk-proto",
+ "rtc",
+ "rtc-sdp",
+ "thiserror 2.0.20",
+]
 
 [[package]]
 name = "lk-routing"

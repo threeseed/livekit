@@ -1,6 +1,6 @@
 [package]
 name = "lk-room"
-description = "Room and Participant actors, transports, subscription and uptrack managers, signalling, supervisor."
+description = "Room and Participant actors, transports, signalling, subscriptions and data tracks."
 edition.workspace = true
 rust-version.workspace = true
 version.workspace = true
@@ -12,3 +12,7 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+lk-proto.workspace = true
+rtc.workspace = true
+rtc-sdp.workspace = true
+thiserror.workspace = true
