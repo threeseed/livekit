@@ -1,6 +1,6 @@
 [package]
 name = "lk-service"
-description = "HTTP server, WS signal endpoints, twirp services, RoomManager, RoomAllocator, stores and agents."
+description = "HTTP server, WS signal endpoints, twirp services, room manager and stores."
 edition.workspace = true
 rust-version.workspace = true
 version.workspace = true
@@ -12,3 +12,24 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+axum.workspace = true
+base64.workspace = true
+bytes.workspace = true
+flate2.workspace = true
+lk-auth.workspace = true
+lk-config.workspace = true
+lk-proto.workspace = true
+lk-room.workspace = true
+prost.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tower-http = { workspace = true, features = ["cors", "limit"] }
+tracing.workspace = true
+
+[dev-dependencies]
+futures-util = "0.3"
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "time"] }
+tokio-tungstenite.workspace = true
