@@ -1,0 +1,68 @@
+# `cargo deny` configuration for livekit-rs.
+#
+# Two jobs here. The licence and advisory checks are the usual supply-chain
+# hygiene. The `bans` section is load-bearing for wire compatibility: it is
+# what keeps `prost`'s own JSON support out of the tree, because the signal
+# protocol's JSON frames follow protojson semantics (unknown fields discarded)
+# and only `pbjson` implements those. A reviewer will not catch a
+# `serde_json`-shaped mistake in a 40-file diff; this will.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+[licenses]
+version = 2
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.9
+exceptions = []
+
+[[licenses.clarify]]
+crate = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[[bans.deny]]
+# prost's JSON codegen does not implement protojson's DiscardUnknown, which the
+# signal protocol requires. Use pbjson. See issue #980.
+crate = "prost-serde"
+reason = "JSON must go through pbjson for protojson semantics"
+
+[[bans.deny]]
+# The async facade binds one socket set per PeerConnection and has no UDP mux.
+# lk-rtcio drives the sans-IO `rtc` core directly. See issue #982.
+crate = "webrtc"
+reason = "the async facade cannot back an SFU; depend on `rtc` instead"
+
+[[bans.deny]]
+crate = "openssl"
+reason = "crypto comes from ring or aws-lc-rs via rtc's feature flags"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# The forked `rtc` tracking branch is added here when issue #981's fork exists.
+allow-git = []

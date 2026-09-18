@@ -1,0 +1,19 @@
+[package]
+name = "lk-integration-tests"
+description = "Cross-crate integration tests: single node, multi node, interop."
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+lk-rtcio.workspace = true
+tokio = { workspace = true, features = ["rt", "macros", "time", "net"] }

@@ -1,0 +1,14 @@
+[package]
+name = "lk-testclient"
+description = "Rust integration test client: signal WebSocket plus an `rtc` PeerConnection, with interceptor hooks."
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]

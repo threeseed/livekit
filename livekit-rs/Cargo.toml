@@ -1,0 +1,154 @@
+# livekit-rs: the Rust port of livekit-server onto the sans-IO `rtc` core.
+#
+# See ../docs/RUST_PORT_PLAN.md section 2.3 for the crate map and section 2.4
+# for why each dependency below was chosen. Crates are listed one by one rather
+# than globbed so that a directory added under `crates/` without a manifest does
+# not break the workspace load.
+[workspace]
+resolver = "3"
+members = [
+    "crates/lk-proto",
+    "crates/lk-auth",
+    "crates/lk-config",
+    "crates/lk-bus",
+    "crates/lk-routing",
+    "crates/lk-rtcio",
+    "crates/lk-media",
+    "crates/lk-rtpext",
+    "crates/lk-sfu",
+    "crates/lk-bwe",
+    "crates/lk-room",
+    "crates/lk-service",
+    "crates/lk-turn",
+    "crates/lk-telemetry",
+    "crates/lk-testclient",
+    "crates/lk-server",
+    "xtask",
+    "tests",
+    "benches",
+]
+# `fuzz/` is its own workspace: cargo-fuzz builds it with its own profile and
+# a nightly-only `-Z` flag set, which must not leak into the main build.
+exclude = ["fuzz"]
+
+[workspace.package]
+edition = "2024"
+# MSRV. Bumping this is a deliberate act: the `msrv` CI job pins this exact
+# toolchain, so a bump must be made here and nowhere else.
+rust-version = "1.90"
+version = "0.1.0"
+license = "Apache-2.0"
+repository = "https://github.com/livekit/livekit"
+authors = ["LiveKit contributors"]
+
+[workspace.dependencies]
+# --- internal ---------------------------------------------------------------
+lk-auth = { path = "crates/lk-auth" }
+lk-bus = { path = "crates/lk-bus" }
+lk-bwe = { path = "crates/lk-bwe" }
+lk-config = { path = "crates/lk-config" }
+lk-media = { path = "crates/lk-media" }
+lk-proto = { path = "crates/lk-proto" }
+lk-room = { path = "crates/lk-room" }
+lk-routing = { path = "crates/lk-routing" }
+lk-rtcio = { path = "crates/lk-rtcio" }
+lk-rtpext = { path = "crates/lk-rtpext" }
+lk-service = { path = "crates/lk-service" }
+lk-sfu = { path = "crates/lk-sfu" }
+lk-telemetry = { path = "crates/lk-telemetry" }
+lk-testclient = { path = "crates/lk-testclient" }
+lk-turn = { path = "crates/lk-turn" }
+
+# --- webrtc core ------------------------------------------------------------
+# Sans-IO. The `webrtc` async facade is deliberately NOT a dependency; see
+# plan section 2.1 and issue #982 for the five facade properties that rule it
+# out for an SFU.
+rtc = "0.21.0-rc.2"
+rtc-shared = "0.21.0-rc.2"
+rtc-rtp = "0.21.0-rc.2"
+rtc-rtcp = "0.21.0-rc.2"
+rtc-stun = "0.21.0-rc.2"
+rtc-sdp = "0.21.0-rc.2"
+rtc-interceptor = "0.21.0-rc.2"
+rtc-turn = "0.21.0-rc.2"
+
+# --- runtime and I/O --------------------------------------------------------
+tokio = { version = "1", default-features = false }
+tokio-util = "0.7"
+tokio-tungstenite = "0.28"
+quinn-udp = "0.6"
+socket2 = "0.6"
+bytes = "1"
+
+# --- protocol ---------------------------------------------------------------
+prost = "0.14"
+prost-build = "0.14"
+prost-types = "0.14"
+pbjson = "0.8"
+pbjson-build = "0.9"
+pbjson-types = "0.8"
+protox = "0.9"
+heck = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# --- service layer ----------------------------------------------------------
+axum = "0.8"
+hyper = "1"
+tower = "0.5"
+tower-http = "0.6"
+fred = "10"
+jsonwebtoken = "9"
+clap = { version = "4", features = ["derive", "env"] }
+
+# --- observability ----------------------------------------------------------
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+prometheus-client = "0.23"
+opentelemetry = "0.31"
+opentelemetry-otlp = "0.31"
+
+# --- shared utilities -------------------------------------------------------
+ahash = "0.8"
+anyhow = "1"
+arc-swap = "1"
+parking_lot = "0.12"
+rand = { version = "0.9", features = ["small_rng"] }
+thiserror = "2"
+
+# --- test / bench -----------------------------------------------------------
+criterion = "0.7"
+mockall = "0.13"
+proptest = "1"
+rstest = "0.26"
+tempfile = "3"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Hot media paths: an unwrap on the packet path is a node-wide outage, not a
+# dropped frame, so these are errors rather than warnings from day one.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "warn"
+todo = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+debug = 1
+
+# The vnet suites run thousands of seeded peers; unoptimised dependencies make
+# the sub-1s exit gate in #983 unreachable.
+[profile.test.package."*"]
+opt-level = 2
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1

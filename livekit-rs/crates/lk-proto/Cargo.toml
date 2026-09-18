@@ -1,0 +1,31 @@
+[package]
+name = "lk-proto"
+description = "Protobuf codegen for all 43 livekit/protocol .proto files, plus twirp and psrpc service traits."
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bytes.workspace = true
+pbjson.workspace = true
+pbjson-types.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+serde.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
+heck.workspace = true
+pbjson-build.workspace = true
+prost.workspace = true
+prost-build.workspace = true
+protox.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
