@@ -17,10 +17,14 @@
 pub mod client_config;
 pub mod client_info;
 pub mod error;
+pub mod participant;
 pub mod protocol_version;
+pub mod room;
 pub mod sdp;
 
 pub use crate::client_config::StaticClientConfigurationManager;
 pub use crate::client_info::ClientInfoExt;
 pub use crate::error::{Error, Result};
+pub use crate::participant::{CloseReason, ParticipantHandle, ParticipantParams};
 pub use crate::protocol_version::{CURRENT_PROTOCOL, ProtocolVersion};
+pub use crate::room::{JoinParams, RoomCloseReason, RoomHandle, RoomParams};

@@ -12,7 +12,14 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+lk-auth.workspace = true
+lk-config.workspace = true
 lk-proto.workspace = true
 rtc.workspace = true
 rtc-sdp.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time", "test-util"] }

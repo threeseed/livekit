@@ -1255,6 +1255,7 @@ dependencies = [
  "prost-build",
  "prost-types",
  "protox",
+ "rand 0.9.5",
  "serde",
  "serde_json",
 ]
@@ -1263,10 +1264,14 @@ dependencies = [
 name = "lk-room"
 version = "0.1.0"
 dependencies = [
+ "lk-auth",
+ "lk-config",
  "lk-proto",
  "rtc",
  "rtc-sdp",
  "thiserror 2.0.20",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -39,6 +39,8 @@
     unreachable_pub
 )]
 
+pub mod utils;
+
 /// `package livekit`: the client-facing protocol, models, rooms, egress,
 /// ingress, SIP, agents, analytics, metrics and webhooks.
 pub mod livekit {
