@@ -10,6 +10,7 @@ members = [
     "crates/lk-proto",
     "crates/lk-auth",
     "crates/lk-config",
+    "crates/lk-config-derive",
     "crates/lk-bus",
     "crates/lk-routing",
     "crates/lk-rtcio",
@@ -47,6 +48,7 @@ lk-auth = { path = "crates/lk-auth" }
 lk-bus = { path = "crates/lk-bus" }
 lk-bwe = { path = "crates/lk-bwe" }
 lk-config = { path = "crates/lk-config" }
+lk-config-derive = { path = "crates/lk-config-derive" }
 lk-media = { path = "crates/lk-media" }
 lk-proto = { path = "crates/lk-proto" }
 lk-room = { path = "crates/lk-room" }
@@ -89,6 +91,9 @@ pbjson-build = "0.9"
 pbjson-types = "0.8"
 protox = "0.9"
 heck = "0.5"
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
@@ -100,7 +105,7 @@ tower = "0.5"
 tower-http = "0.6"
 fred = "10"
 jsonwebtoken = "9"
-clap = { version = "4", features = ["derive", "env"] }
+clap = { version = "4", features = ["derive", "env", "string"] }
 
 # --- observability ----------------------------------------------------------
 tracing = "0.1"

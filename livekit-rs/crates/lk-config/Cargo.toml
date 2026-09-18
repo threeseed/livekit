@@ -12,3 +12,11 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+clap.workspace = true
+lk-config-derive.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
