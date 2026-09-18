@@ -4,6 +4,12 @@ Date: 2026-09-18
 Baseline: `livekit-server` at 9feb4c7 (Go 1.26, pion/webrtc v4.2.18 + livekit "warp" forks),
 `webrtc` 0.21.0-rc.2 async facade, `rtc` 0.21.0-rc.2 sans-IO core (webrtc-rs/rtc at 4239564).
 
+> **Where the code lives.** The `livekit-rs/` workspace this plan describes is in the
+> [`harana/harana-matrix`](https://github.com/harana/harana-matrix) repository, under
+> `livekit-rs/`, along with the `rtc` fork runbook at `docs/RTC_FORK.md`. This repository holds
+> the Go server being ported and this plan. Phase 0 is done bar the browser-interop half of its
+> exit gate; see harana/harana-matrix#972.
+
 ## Summary
 
 - Port the server as a workspace of ~12 crates on top of the sans-IO `rtc` core, with a
