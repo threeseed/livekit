@@ -104,6 +104,9 @@ pub struct ParticipantParams {
     pub responses: mpsc::Sender<SignalResponse>,
     /// Where the participant reports changes.
     pub events: mpsc::Sender<ParticipantEvent>,
+    /// Requests that arrived with the join request and must be replayed once
+    /// the session is established, such as `AddTrack` and the publisher offer.
+    pub pending_requests: Vec<SignalRequest>,
 }
 
 /// Something the room needs to know about a participant.
@@ -161,6 +164,12 @@ enum Command {
     JoinContext(oneshot::Sender<Box<JoinContext>>),
     Send(Box<SignalResponse>),
     Info(oneshot::Sender<ParticipantInfo>),
+    PendingRequests(oneshot::Sender<Vec<SignalRequest>>),
+    ReplaceResponses {
+        responses: mpsc::Sender<SignalResponse>,
+        reply: oneshot::Sender<u64>,
+    },
+    SessionEpoch(oneshot::Sender<u64>),
     SetState(participant_info::State),
     UpdateMetadata {
         name: Option<String>,
@@ -248,6 +257,51 @@ impl ParticipantHandle {
         answer.await.ok()
     }
 
+    /// The media requests the participant is holding until the transport
+    /// exists, oldest first.
+    ///
+    /// They are queued rather than dropped: a client that sent `AddTrack` or a
+    /// publisher offer with its join request is waiting for an answer, and
+    /// losing the request means it waits forever.
+    pub async fn pending_requests(&self) -> Vec<SignalRequest> {
+        let (reply, answer) = oneshot::channel();
+        if self
+            .commands
+            .send(Command::PendingRequests(reply))
+            .await
+            .is_err()
+        {
+            return Vec::new();
+        }
+        answer.await.unwrap_or_default()
+    }
+
+    /// Points the participant at a new response channel, which is what
+    /// resuming a session after a signal reconnect amounts to.
+    ///
+    /// Returns the new session epoch. The epoch is what lets the signal
+    /// connection being replaced tell "my client went away" from "my client
+    /// reconnected on another socket": only the current epoch's connection may
+    /// take the participant down with it.
+    pub async fn replace_responses(&self, responses: mpsc::Sender<SignalResponse>) -> Option<u64> {
+        let (reply, answer) = oneshot::channel();
+        self.commands
+            .send(Command::ReplaceResponses { responses, reply })
+            .await
+            .ok()?;
+        answer.await.ok()
+    }
+
+    /// The participant's current session epoch.
+    pub async fn session_epoch(&self) -> Option<u64> {
+        let (reply, answer) = oneshot::channel();
+        self.commands
+            .send(Command::SessionEpoch(reply))
+            .await
+            .ok()?;
+        answer.await.ok()
+    }
+
     /// Moves the participant's state machine forward.
     pub async fn set_state(&self, state: participant_info::State) {
         let _ = self.commands.send(Command::SetState(state)).await;
@@ -332,6 +386,10 @@ struct Participant {
     responses: mpsc::Sender<SignalResponse>,
     events: mpsc::Sender<ParticipantEvent>,
     versions: TimedVersionGenerator,
+    /// Requests waiting for the media plane, oldest first.
+    pending_requests: Vec<SignalRequest>,
+    /// Bumped every time the signal connection is replaced.
+    session_epoch: u64,
     closed: bool,
 }
 
@@ -384,6 +442,8 @@ impl Participant {
             responses: params.responses,
             events: params.events,
             versions,
+            pending_requests: params.pending_requests,
+            session_epoch: 0,
             closed: false,
         }
     }
@@ -400,6 +460,17 @@ impl Participant {
                 }
                 Command::Info(reply) => {
                     let _ = reply.send(self.info.clone());
+                }
+                Command::PendingRequests(reply) => {
+                    let _ = reply.send(self.pending_requests.clone());
+                }
+                Command::ReplaceResponses { responses, reply } => {
+                    self.responses = responses;
+                    self.session_epoch += 1;
+                    let _ = reply.send(self.session_epoch);
+                }
+                Command::SessionEpoch(reply) => {
+                    let _ = reply.send(self.session_epoch);
                 }
                 Command::SetState(state) => self.set_state(state).await,
                 Command::UpdateMetadata {
@@ -477,17 +548,33 @@ impl Participant {
             // answers them so a busy room cannot make a live connection look
             // dead.
             Some(signal_request::Message::Ping(_) | signal_request::Message::PingReq(_)) => {}
-            other => {
+            Some(other) => {
                 // Everything else needs the transport, which lands with the
-                // PCTransport work. Dropping is deliberate: a made-up answer
-                // would leave the client waiting on a track that never comes.
+                // PCTransport work. The request is queued rather than dropped
+                // or half-answered: a client that sent AddTrack is waiting for
+                // a published track, and a made-up answer or a silent drop
+                // both leave it waiting forever.
                 tracing::debug!(
                     participant = %self.info.identity,
-                    request = ?other.as_ref().map(std::mem::discriminant),
-                    "signal request needs the media plane, which is not wired up yet"
+                    "queueing signal request until the media plane is wired up"
                 );
+                self.queue_pending(SignalRequest {
+                    message: Some(other),
+                });
             }
+            None => {}
         }
+    }
+
+    /// Queues a request for the media plane, dropping the oldest when the
+    /// queue is full: a client that has sent thousands of unanswerable
+    /// requests is not going to be served by keeping all of them.
+    fn queue_pending(&mut self, request: SignalRequest) {
+        const MAX_PENDING: usize = 256;
+        if self.pending_requests.len() >= MAX_PENDING {
+            self.pending_requests.remove(0);
+        }
+        self.pending_requests.push(request);
     }
 
     async fn set_state(&mut self, state: participant_info::State) {

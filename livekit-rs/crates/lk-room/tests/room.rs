@@ -99,6 +99,7 @@ async fn join_with_limits(
                 responses,
                 // replaced by the room with its own channel
                 events: mpsc::channel(1).0,
+                pending_requests: Vec::new(),
             },
             ice_servers: Vec::new(),
         })
@@ -268,6 +269,7 @@ async fn a_duplicate_identity_is_refused() {
                 limits: LimitConfig::default(),
                 responses,
                 events: mpsc::channel(1).0,
+                pending_requests: Vec::new(),
             },
             ice_servers: Vec::new(),
         })
@@ -300,6 +302,7 @@ async fn a_full_room_refuses_the_next_participant() {
                 limits: LimitConfig::default(),
                 responses,
                 events: mpsc::channel(1).0,
+                pending_requests: Vec::new(),
             },
             ice_servers: Vec::new(),
         })

@@ -48,15 +48,24 @@ struct TestAllocator {
 }
 
 impl RoomAllocator for TestAllocator {
-    fn validate_create_room(&self, room_name: &str) -> Result<()> {
-        if self.missing_room.as_deref() == Some(room_name) {
-            return Err(Error::RoomNotFound);
-        }
-        Ok(())
+    fn validate_create_room<'a>(
+        &'a self,
+        room_name: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
+        let missing = self.missing_room.as_deref() == Some(room_name);
+        Box::pin(async move {
+            if missing {
+                return Err(Error::RoomNotFound);
+            }
+            Ok(())
+        })
     }
 
-    fn select_room_node(&self, _room_name: &str) -> Result<()> {
-        Ok(())
+    fn select_room_node<'a>(
+        &'a self,
+        _room_name: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
+        Box::pin(async { Ok(()) })
     }
 
     fn region(&self) -> String {

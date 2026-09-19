@@ -17,13 +17,18 @@ pub mod client_info;
 pub mod connect;
 pub mod error;
 pub mod health;
+pub mod room_allocator;
+pub mod room_manager;
 pub mod rtc_ws;
 pub mod server;
+pub mod store;
 pub mod ws;
 
 pub use crate::auth::{Grants, SharedKeyProvider};
 pub use crate::connect::{ParticipantInit, RoomAllocator};
 pub use crate::error::{Error, Result};
 pub use crate::health::NodeStats;
+pub use crate::room_manager::RoomManager;
 pub use crate::rtc_ws::{RtcState, SessionStarter, StartedSession};
 pub use crate::server::{ServerConfig, build_metrics_router, build_router};
+pub use crate::store::{LocalStore, ObjectStore};

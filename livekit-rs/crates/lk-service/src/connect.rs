@@ -11,7 +11,9 @@
 //! starts a session from.
 
 use std::collections::BTreeMap;
+use std::future::Future;
 use std::io::Read as _;
+use std::pin::Pin;
 
 use base64::Engine as _;
 use base64::engine::general_purpose::URL_SAFE;
@@ -234,14 +236,20 @@ pub trait RoomAllocator: Send + Sync + 'static {
     ///
     /// Returns [`Error::RoomNotFound`] when the room does not exist and
     /// `room.auto_create` is off.
-    fn validate_create_room(&self, room_name: &str) -> Result<()>;
+    fn validate_create_room<'a>(
+        &'a self,
+        room_name: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 
     /// Places the room on a node. A no-op on a single node.
     ///
     /// # Errors
     ///
     /// Returns [`Error::LimitExceeded`] when no node can take the room.
-    fn select_room_node(&self, room_name: &str) -> Result<()>;
+    fn select_room_node<'a>(
+        &'a self,
+        room_name: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 
     /// The region this node is in, for the client's candidate ordering.
     fn region(&self) -> String {
@@ -284,7 +292,7 @@ pub struct ConnectRequestParams {
 /// Returns the failure the Go handler pairs with a status: 401 for a missing
 /// or insufficient grant, 400 for an empty or oversized identity or room name,
 /// 404 for an unknown room.
-pub fn validate_connect_request(
+pub async fn validate_connect_request(
     grants: Option<&Grants>,
     limits: &LimitConfig,
     params: &ConnectRequestParams,
@@ -334,7 +342,7 @@ pub fn validate_connect_request(
         grants.claims.identity = format!("{}#{}", grants.claims.identity, params.publish);
     }
 
-    allocator.validate_create_room(&room_name)?;
+    allocator.validate_create_room(&room_name).await?;
 
     let mut create_room = CreateRoomRequest {
         name: room_name.clone(),

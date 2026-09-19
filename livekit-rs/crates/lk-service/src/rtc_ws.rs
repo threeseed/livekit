@@ -97,13 +97,13 @@ pub async fn rtc_v1(State(state): State<RtcState>, request: Request) -> Response
 /// `GET /rtc/validate`: the same validation without the socket.
 pub async fn rtc_v0_validate(State(state): State<RtcState>, request: Request) -> Response {
     let parts = RequestParts::extract(request).await;
-    validate(&state, &parts, false)
+    validate(&state, &parts, false).await
 }
 
 /// `GET /rtc/v1/validate`: the same, for the join-request form.
 pub async fn rtc_v1_validate(State(state): State<RtcState>, request: Request) -> Response {
     let parts = RequestParts::extract(request).await;
-    validate(&state, &parts, true)
+    validate(&state, &parts, true).await
 }
 
 /// The pieces of a request the signal endpoints read.
@@ -140,8 +140,8 @@ impl RequestParts {
     }
 }
 
-fn validate(state: &RtcState, parts: &RequestParts, needs_join_request: bool) -> Response {
-    match validate_internal(state, parts, needs_join_request, true) {
+async fn validate(state: &RtcState, parts: &RequestParts, needs_join_request: bool) -> Response {
+    match validate_internal(state, parts, needs_join_request, true).await {
         // the Go handler answers with this exact body, and the SDKs check it
         Ok(_) => (StatusCode::OK, "success").into_response(),
         Err(err) => err.into_response(),
@@ -153,7 +153,7 @@ fn validate(state: &RtcState, parts: &RequestParts, needs_join_request: bool) ->
 /// `strict` rejects an undecodable `attributes` parameter rather than ignoring
 /// it: a real connection should not fail over an attribute the participant can
 /// set again, but `/rtc/validate` exists to tell a developer what is wrong.
-fn validate_internal(
+async fn validate_internal(
     state: &RtcState,
     parts: &RequestParts,
     needs_join_request: bool,
@@ -202,7 +202,8 @@ fn validate_internal(
         &state.limits,
         &request_params,
         state.allocator.as_ref(),
-    )?;
+    )
+    .await?;
 
     let init = match join_request {
         None => {
@@ -225,7 +226,8 @@ async fn serve(state: RtcState, parts: &mut RequestParts, needs_join_request: bo
         return StatusCode::NOT_FOUND.into_response();
     };
 
-    let (room_name, init) = match validate_internal(&state, parts, needs_join_request, false) {
+    let (room_name, init) = match validate_internal(&state, parts, needs_join_request, false).await
+    {
         Ok(validated) => validated,
         Err(err) => return err.into_response(),
     };
@@ -236,6 +238,9 @@ async fn serve(state: RtcState, parts: &mut RequestParts, needs_join_request: bo
         // the client's own deadline grows the same way, so a longer wait here
         // would be a hang rather than a retry
         let deadline = Duration::from_secs(3 + attempt as u64);
+        if let Err(err) = state.allocator.select_room_node(&room_name).await {
+            return err.into_response();
+        }
         match timeout(
             deadline,
             state
